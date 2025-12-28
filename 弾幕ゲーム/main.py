@@ -2,6 +2,10 @@ import pyxel
 import random
 import math
 import time
+import pygame
+
+# pygame を初期化して MP3 再生準備
+pygame.mixer.init()
 
 #初期化
 W = 160
@@ -26,6 +30,7 @@ ROTATION_SPEED = 0.25  # 生成ごとの角度オフセット増分（ラジア�
 PATTERN = 0            # パターン選択（0=リング, 1=渦巻き, 2=放射状）
 PATTERN_TIMER = 0      # パターン切り替えタイマー
 PATTERN_INTERVAL = 180 # 6秒ごとにパターン切り替え（fps=30）
+
 
 # エミッター（弾の起源）
 EMIT_CENTER_X = W // 2
@@ -52,11 +57,33 @@ bullets = []           # 各弾: [x, y, vx, vy, size, color]
 spawn_timer = 0
 angle_offset = 0.0
 
+# BGM設定
+BGM_PATHS = {
+    1: "assets/easy.mp3",        # easy: おてんば恋娘
+    2: "assets/normal.mp3",      # normal: 月まで届け不死の煙
+    3: "assets/hard.mp3",        # hard: U.N.オーエンは彼女なのか？
+    4: "assets/danger.mp3"       # danger: 最終鬼畜妹フランドールS
+}
+current_bgm_key = None
+
+def bgm_play():
+    if key=='1':
+        pygame.mixer.music.load("assets/easy.mp3")  # 再生したい MP3 ファイル
+        pygame.mixer.music.play(-1)  # -1 はループ再生
+    elif key=='2':
+        pygame.mixer.music.load("assets/normal.mp3")  # 再生したい MP3 ファイル
+        pygame.mixer.music.play(-1)  # -1 はループ再生
+    elif key=='3':
+        pygame.mixer.music.load("assets/hard.mp3")  # 再生したい MP3 ファイル
+        pygame.mixer.music.play(-1)  # -1 はループ再生
+    elif key=='4':
+        pygame.mixer.music.load("assets/danger.mp3")  # 再生したい MP3 ファイル
+        pygame.mixer.music.play(-1)  # -1 はループ再生
+
 def update():
-    global scene,p_x, p_y, bullets, spawn_timer, angle_offset, TIME, EMIT_CENTER_X, EMIT_CENTER_SPEED
+    global scene,p_x, p_y, bullets, spawn_timer, angle_offset, TIME, EMIT_CENTER_X, EMIT_CENTER_SPEED,key
     global invincible_frames, HP, game_over, MP, time_stop, time_stop_drain_counter, PATTERN, PATTERN_TIMER, game_over_timer
-    # タイトル用カウンタを操作するために追加
-    global title_timer
+    global title_timer, current_bgm_key
 
     # タイトル画面処理
     if scene == "title":
@@ -93,6 +120,15 @@ def update():
             PATTERN_TIMER = 0
             PATTERN = 0
             invincible_frames = 0
+            
+            # BGM再生
+            current_bgm_key = key
+            bgm_path = BGM_PATHS.get(key)
+            if bgm_path:
+                try:
+                    pyxel.playm(0, loop=True)  # 0番目のBGMをループ再生
+                except:
+                    pass
         return
 
     EMIT_CENTER_X += EMIT_CENTER_SPEED
@@ -112,7 +148,7 @@ def update():
     TIME += 1.0
     emitter_x = EMIT_CENTER_X
     emitter_y = EMIT_CENTER_Y
-
+    bgm_play()
     # スペースでザ・ワールドのON/OFF（トグル）
     if pyxel.btnp(pyxel.KEY_SPACE):
         if not time_stop and MP > 0:
@@ -191,6 +227,7 @@ def update():
         if game_over_timer <= 0:
             scene = "title"
             game_over = False
+            pyxel.stop(0)  # BGM停止
 
     # ザ・ワールド中はMPを消費。MP尽きたら自動解除
     if time_stop:
